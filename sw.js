@@ -1,21 +1,36 @@
-/* offline cache for the Meal Check-In app */
-var CACHE = "meal-checkin-v2";
-var ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icon.png"];
+/* Offline shell cache for the online-synchronised Meal Check-In app. */
+var CACHE = "meal-checkin-supabase-v1";
+var ASSETS = [
+  "./",
+  "./index.html",
+  "./app.js",
+  "./config.js",
+  "./manifest.webmanifest",
+  "./icon.png"
+];
 
 self.addEventListener("install", function(e){
   e.waitUntil(caches.open(CACHE).then(function(c){ return c.addAll(ASSETS); }));
   self.skipWaiting();
 });
+
 self.addEventListener("activate", function(e){
   e.waitUntil(caches.keys().then(function(keys){
-    return Promise.all(keys.map(function(k){ if(k !== CACHE) return caches.delete(k); }));
+    return Promise.all(keys.map(function(k){
+      if(k !== CACHE) return caches.delete(k);
+    }));
   }));
   self.clients.claim();
 });
+
 self.addEventListener("fetch", function(e){
-  // Student list: network-first so a new term's list is picked up when online,
-  // fall back to the saved copy when offline.
-  if(e.request.url.indexOf("students.csv") !== -1){
+  var url = new URL(e.request.url);
+
+  // Do not intercept Supabase, CDN, or any other cross-origin requests.
+  if(url.origin !== self.location.origin) return;
+
+  // Network-first for app updates and navigation, then cached fallback.
+  if(e.request.mode === "navigate" || /\/(index\.html|app\.js|config\.js)$/.test(url.pathname)){
     e.respondWith(
       fetch(e.request).then(function(resp){
         var copy = resp.clone();
@@ -25,6 +40,8 @@ self.addEventListener("fetch", function(e){
     );
     return;
   }
-  // Everything else: cache-first (fast, works offline).
-  e.respondWith(caches.match(e.request).then(function(r){ return r || fetch(e.request); }));
+
+  e.respondWith(
+    caches.match(e.request).then(function(r){ return r || fetch(e.request); })
+  );
 });
