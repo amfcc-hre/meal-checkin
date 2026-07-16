@@ -1,4 +1,4 @@
-const CACHE='amfcc-meal-checkin-v1';
+var CACHE = "meal-checkin-supabase-v2";
 const ASSETS=['./','./index.html','./app.js','./config.js','./manifest.webmanifest','./icon.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)));self.skipWaiting()});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(k=>k===CACHE?null:caches.delete(k)))));self.clients.claim()});
